@@ -58,6 +58,7 @@
 
 #include "InstanceTask.h"
 #include "WatchLock.h"
+#include "minecraft/HorizonInstance.h"
 #include "minecraft/MinecraftInstance.h"
 #include "settings/INISettingsObject.h"
 
@@ -719,12 +720,17 @@ std::unique_ptr<MinecraftInstance> InstanceList::loadInstance(const InstanceId& 
     instanceSettings->registerSetting("InstanceType", "");
 
     const QString instType = instanceSettings->get("InstanceType").toString();
-    if (!instType.isEmpty() && instType != "OneSix") {
+    if (!instType.isEmpty() && instType != "OneSix" && instType != "Horizon") {
         qDebug() << "Instance " << id << "has invalid type" << instType;
         return nullptr;
     }
 
-    auto inst = std::make_unique<MinecraftInstance>(m_globalSettings, std::move(instanceSettings), instanceRoot);
+    std::unique_ptr<MinecraftInstance> inst;
+    if (instType == "Horizon") {
+        inst = std::make_unique<HorizonInstance>(m_globalSettings, std::move(instanceSettings), instanceRoot);
+    } else {
+        inst = std::make_unique<MinecraftInstance>(m_globalSettings, std::move(instanceSettings), instanceRoot);
+    }
     qDebug() << "Loaded instance" << inst->name() << "from" << inst->instanceRoot();
 
     auto shortcut = inst->shortcuts();
