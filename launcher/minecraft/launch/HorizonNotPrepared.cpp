@@ -18,12 +18,16 @@ HorizonNotPrepared::HorizonNotPrepared(LaunchTask* parent) : LaunchStep(parent) 
 void HorizonNotPrepared::executeTask()
 {
     auto* horizon = qobject_cast<HorizonInstance*>(m_parent->instance());
-    if (horizon != nullptr && !horizon->isPrepared()) {
+    if (horizon == nullptr) {
+        emitFailed(tr("This launch step requires a Horizon instance."));
+        return;
+    }
+    if (!horizon->isPrepared()) {
         emit logLine(tr("Horizon resources are not prepared yet: %1").arg(horizon->resourcesDir()), MessageLevel::Error);
         emitFailed(tr("This Horizon instance has no prepared resources yet. Automatic preparation arrives in milestone M4."));
         return;
     }
 
-    emit logLine(tr("Horizon launching is not wired into the launcher yet (milestone M3)."), MessageLevel::Error);
-    emitFailed(tr("This Horizon instance cannot be launched yet: launching arrives in milestone M3."));
+    emit logLine(tr("Horizon resources are prepared: %1").arg(horizon->resourcesDir()), MessageLevel::Launcher);
+    emitSucceeded();
 }

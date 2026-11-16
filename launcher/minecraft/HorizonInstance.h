@@ -26,9 +26,9 @@
  * An instance that runs Project Horizon (Minecraft Java 26.3 rewritten in Rust)
  * instead of the Java client.
  *
- * Milestone M1: the instance loads, saves its own `horizon.json` model, and
- * refuses to launch with a clear message. Launching arrives in M3, preparation
- * in M4.
+ * Milestone M1: the instance loads and saves its own `horizon.json` model.
+ * Milestone M3: launching runs `horizon-client` with the account session on
+ * stdin. Preparation (M4) and settings UI (M2) are still to come.
  *
  * `horizon.json` is the source of truth for the Horizon side; `instance.cfg`
  * keeps the Prism-wide settings (name, icon, play time) and `InstanceType=Horizon`.
@@ -77,9 +77,14 @@ class HorizonInstance : public MinecraftInstance {
     /// True when the resources folder looks prepared (M4 will use `--check`).
     bool isPrepared() const;
 
+    /// `horizon-client` to run: `clientPath` from horizon.json, else the
+    /// version pinned by `clientVersion`, else any installed version, else PATH.
+    QString clientBinary() const;
+
    private:
     void loadHorizonJson();
     void saveHorizonJson();
+    QString horizonLauncherDir() const;
 
     QJsonObject m_horizon;
 };

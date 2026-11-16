@@ -19,12 +19,15 @@
 #include "HorizonInstance.h"
 
 #include <QDebug>
+#include <QDir>
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonParseError>
+#include <QStandardPaths>
 
 #include "FileSystem.h"
 #include "launch/LaunchTask.h"
+#include "minecraft/launch/HorizonLaunchStep.h"
 #include "minecraft/launch/HorizonNotPrepared.h"
 
 namespace {
@@ -123,12 +126,12 @@ QList<Task::Ptr> HorizonInstance::createUpdateTask()
 
 LaunchTask* HorizonInstance::createLaunchTask(AuthSessionPtr account, MinecraftTarget::Ptr targetToJoin)
 {
-    Q_UNUSED(account);
-    Q_UNUSED(targetToJoin);
-
     auto process = LaunchTask::create(this);
     auto* task = process.get();
+
+    // Refuse early (and clearly) when M4 has not prepared the resources yet.
     task->appendStep(makeShared<HorizonNotPrepared>(task));
+    task->appendStep(makeShared<HorizonLaunchStep>(task, account, targetToJoin));
     return process.release();
 }
 
@@ -208,6 +211,56 @@ bool HorizonInstance::isPrepared() const
     // Cheap check for M1. M4 asks `horizon-tools check`, which also compares
     // the preparer's output_version.
     return QFileInfo(FS::PathCombine(resourcesDir(), "assets")).isDir();
+}
+
+QString HorizonInstance::horizonLauncherDir() const
+{
+    // Where the official Horizon launcher stores its installed versions.
+    const QByteArray appData = qgetenv("APPDATA");
+#if defined(Q_OS_MACOS)
+    return FS::PathCombine(QDir::homePath(), "Library", "Application Support", "horizon-launcher");
+#elif defined(Q_OS_WIN)
+    return FS::PathCombine(QString::fromLocal8Bit(appData), "horizon-launcher");
+#else
+    const QByteArray xdgData = qgetenv("XDG_DATA_HOME");
+    const QString dataHome = xdgData.isEmpty() ? FS::PathCombine(QDir::homePath(), ".local", "share") : QString::fromLocal8Bit(xdgData);
+    return FS::PathCombine(dataHome, "horizon-launcher");
+#endif
+}
+
+QString HorizonInstance::clientBinary() const
+{
+#if defined(Q_OS_WIN)
+    constexpr auto BINARY_NAME = "horizon-client.exe";
+#else
+    constexpr auto BINARY_NAME = "horizon-client";
+#endif
+
+    // Explicit override in horizon.json, absolute or relative to the instance.
+    const auto configured = m_horizon.value("clientPath").toString();
+    if (!configured.isEmpty()) {
+        const QFileInfo info(configured);
+        return info.isAbsolute() ? configured : FS::PathCombine(instanceRoot(), configured);
+    }
+
+    const auto versionsDir = FS::PathCombine(horizonLauncherDir(), "versions");
+    const auto pinned = clientVersion();
+    if (!pinned.isEmpty()) {
+        const auto candidate = FS::PathCombine(versionsDir, pinned, BINARY_NAME);
+        if (QFileInfo(candidate).isFile())
+            return candidate;
+    }
+
+    // Fall back to any installed version (newest name last in QDir's order).
+    QDir versions(versionsDir);
+    const auto entries = versions.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
+    for (auto it = entries.crbegin(); it != entries.crend(); ++it) {
+        const auto candidate = FS::PathCombine(versionsDir, *it, BINARY_NAME);
+        if (QFileInfo(candidate).isFile())
+            return candidate;
+    }
+
+    return QStandardPaths::findExecutable(BINARY_NAME);
 }
 
 QString HorizonInstance::instanceConfigFolder() const

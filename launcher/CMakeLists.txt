@@ -245,6 +245,8 @@ set(MINECRAFT_SOURCES
     minecraft/launch/ClaimAccount.h
     minecraft/launch/CreateGameFolders.cpp
     minecraft/launch/CreateGameFolders.h
+    minecraft/launch/HorizonLaunchStep.cpp
+    minecraft/launch/HorizonLaunchStep.h
     minecraft/launch/HorizonNotPrepared.cpp
     minecraft/launch/HorizonNotPrepared.h
     minecraft/launch/EnsureAvailableMemory.cpp
