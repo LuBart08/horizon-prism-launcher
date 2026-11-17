@@ -318,6 +318,8 @@ set(MINECRAFT_SOURCES
     minecraft/WorldTasks.cpp
 
     minecraft/mod/MetadataHandler.h
+    minecraft/mod/HorizonMod.h
+    minecraft/mod/HorizonMod.cpp
     minecraft/mod/Mod.h
     minecraft/mod/Mod.cpp
     minecraft/mod/ModDetails.h
@@ -915,6 +917,8 @@ SET(LAUNCHER_SOURCES
     ui/pages/instance/LogPage.h
     ui/pages/instance/HorizonSettingsPage.cpp
     ui/pages/instance/HorizonSettingsPage.h
+    ui/pages/instance/HorizonModsPage.cpp
+    ui/pages/instance/HorizonModsPage.h
     ui/pages/instance/InstanceSettingsPage.h
     ui/pages/instance/ScreenshotsPage.cpp
     ui/pages/instance/ScreenshotsPage.h

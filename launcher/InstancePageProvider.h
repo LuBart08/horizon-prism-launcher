@@ -5,6 +5,7 @@
 #include "minecraft/MinecraftInstance.h"
 #include "ui/pages/BasePage.h"
 #include "ui/pages/BasePageProvider.h"
+#include "ui/pages/instance/HorizonModsPage.h"
 #include "ui/pages/instance/HorizonSettingsPage.h"
 #include "ui/pages/instance/InstanceSettingsPage.h"
 #include "ui/pages/instance/LogPage.h"
@@ -32,11 +33,17 @@ class InstancePageProvider : protected QObject, public BasePageProvider {
         values.append(new LogPage(inst));
         values.append(new VersionPage(inst));
         values.append(ManagedPackPage::createPage(inst));
-        auto modsPage = new ModFolderPage(inst, inst->loaderModList());
-        modsPage->setFilter("%1 (*.zip *.jar *.litemod *.nilmod)");
-        values.append(modsPage);
-        values.append(new CoreModFolderPage(inst, inst->coreModList()));
-        values.append(new NilModFolderPage(inst, inst->nilModList()));
+        auto* horizon = qobject_cast<HorizonInstance*>(inst);
+        if (horizon) {
+            // Java mods never run on Horizon: show the Horizon folders instead.
+            values.append(new HorizonModsPage(horizon));
+        } else {
+            auto modsPage = new ModFolderPage(inst, inst->loaderModList());
+            modsPage->setFilter("%1 (*.zip *.jar *.litemod *.nilmod)");
+            values.append(modsPage);
+            values.append(new CoreModFolderPage(inst, inst->coreModList()));
+            values.append(new NilModFolderPage(inst, inst->nilModList()));
+        }
         values.append(new ResourcePackPage(inst, inst->resourcePackList()));
         values.append(new GlobalDataPackPage(inst));
         values.append(new TexturePackPage(inst, inst->texturePackList()));
@@ -45,7 +52,7 @@ class InstancePageProvider : protected QObject, public BasePageProvider {
         values.append(new WorldListPage(inst, inst->worldList()));
         values.append(new ServersPage(inst));
         values.append(new ScreenshotsPage(FS::PathCombine(inst->gameRoot(), "screenshots")));
-        if (auto* horizon = qobject_cast<HorizonInstance*>(inst))
+        if (horizon)
             values.append(new HorizonSettingsPage(horizon));
         values.append(new InstanceSettingsPage(inst));
         values.append(new OtherLogsPage("logs", tr("Other Logs"), "Other-Logs", inst));
