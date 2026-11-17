@@ -137,10 +137,14 @@ void HorizonLaunchStep::executeTask()
     QStringList args{ "--resources", horizon->resourcesDir(), "--game-dir", horizon->gameRoot(), "--home", horizon->horizonHomeDir() };
 
     const auto settings = horizon->settings();
-    const auto width = settings->get("MinecraftWinWidth").toInt();
-    const auto height = settings->get("MinecraftWinHeight").toInt();
-    if (width > 0 && height > 0)
-        args << "--width" << QString::number(width) << "--height" << QString::number(height);
+    if (horizon->fullscreen()) {
+        args << "--fullscreen";
+    } else {
+        const auto width = settings->get("MinecraftWinWidth").toInt();
+        const auto height = settings->get("MinecraftWinHeight").toInt();
+        if (width > 0 && height > 0)
+            args << "--width" << QString::number(width) << "--height" << QString::number(height);
+    }
 
     if (m_targetToJoin) {
         if (!m_targetToJoin->world.isEmpty()) {

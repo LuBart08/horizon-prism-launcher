@@ -173,6 +173,11 @@ int HorizonInstance::nativeHooksPin() const
     return m_horizon.value("pins").toObject().value("native_hooks_api").toInt(HORIZON_DEFAULT_NATIVE_HOOKS);
 }
 
+bool HorizonInstance::fullscreen() const
+{
+    return m_horizon.value("fullscreen").toBool(false);
+}
+
 void HorizonInstance::setChannel(const QString& channel)
 {
     m_horizon["channel"] = channel;
@@ -192,6 +197,19 @@ void HorizonInstance::setPreparerVersion(const QString& version)
     m_horizon["preparerVersion"] = version;
     saveHorizonJson();
     emit propertiesChanged();
+}
+
+void HorizonInstance::setFullscreen(bool fullscreen)
+{
+    m_horizon["fullscreen"] = fullscreen;
+    saveHorizonJson();
+    emit propertiesChanged();
+}
+
+QStringList HorizonInstance::installedVersions() const
+{
+    QDir versions(FS::PathCombine(horizonLauncherDir(), "versions"));
+    return versions.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
 }
 
 QString HorizonInstance::resourcesDir() const

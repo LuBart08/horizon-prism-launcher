@@ -1,9 +1,11 @@
 #pragma once
 #include <FileSystem.h>
 #include <ui/pages/instance/DataPackPage.h>
+#include "minecraft/HorizonInstance.h"
 #include "minecraft/MinecraftInstance.h"
 #include "ui/pages/BasePage.h"
 #include "ui/pages/BasePageProvider.h"
+#include "ui/pages/instance/HorizonSettingsPage.h"
 #include "ui/pages/instance/InstanceSettingsPage.h"
 #include "ui/pages/instance/LogPage.h"
 #include "ui/pages/instance/ManagedPackPage.h"
@@ -43,6 +45,8 @@ class InstancePageProvider : protected QObject, public BasePageProvider {
         values.append(new WorldListPage(inst, inst->worldList()));
         values.append(new ServersPage(inst));
         values.append(new ScreenshotsPage(FS::PathCombine(inst->gameRoot(), "screenshots")));
+        if (auto* horizon = qobject_cast<HorizonInstance*>(inst))
+            values.append(new HorizonSettingsPage(horizon));
         values.append(new InstanceSettingsPage(inst));
         values.append(new OtherLogsPage("logs", tr("Other Logs"), "Other-Logs", inst));
         return values;

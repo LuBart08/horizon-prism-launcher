@@ -62,10 +62,15 @@ class HorizonInstance : public MinecraftInstance {
     QString launchApiPin() const;
     int outputVersionPin() const;
     int nativeHooksPin() const;
+    bool fullscreen() const;
 
     void setChannel(const QString& channel);
     void setClientVersion(const QString& version);
     void setPreparerVersion(const QString& version);
+    void setFullscreen(bool fullscreen);
+
+    /// Horizon versions installed by the official launcher (both binaries).
+    QStringList installedVersions() const;
 
     ////// Horizon folders //////
     /// Prepared resources, passed to `horizon-client --resources`.
