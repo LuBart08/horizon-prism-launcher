@@ -29,6 +29,7 @@
 #include "launch/LaunchTask.h"
 #include "minecraft/launch/HorizonLaunchStep.h"
 #include "minecraft/launch/HorizonNotPrepared.h"
+#include "minecraft/launch/HorizonPrepareStep.h"
 
 namespace {
 constexpr auto HORIZON_MINECRAFT_VERSION = "26.3";
@@ -129,7 +130,9 @@ LaunchTask* HorizonInstance::createLaunchTask(AuthSessionPtr account, MinecraftT
     auto process = LaunchTask::create(this);
     auto* task = process.get();
 
-    // Refuse early (and clearly) when M4 has not prepared the resources yet.
+    // Prepare or repair the resources first, then make sure they are usable,
+    // then run the real client.
+    task->appendStep(makeShared<HorizonPrepareStep>(task));
     task->appendStep(makeShared<HorizonNotPrepared>(task));
     task->appendStep(makeShared<HorizonLaunchStep>(task, account, targetToJoin));
     return process.release();
@@ -228,25 +231,26 @@ QString HorizonInstance::horizonLauncherDir() const
 #endif
 }
 
-QString HorizonInstance::clientBinary() const
+QString HorizonInstance::horizonBinary(const QString& explicitKey, const QString& versionKey, const char* binaryName) const
 {
-#if defined(Q_OS_WIN)
-    constexpr auto BINARY_NAME = "horizon-client.exe";
+    const QString name = QString::fromLatin1(binaryName);
+#ifdef Q_OS_WIN
+    const auto executableName = name + ".exe";
 #else
-    constexpr auto BINARY_NAME = "horizon-client";
+    const auto executableName = name;
 #endif
 
     // Explicit override in horizon.json, absolute or relative to the instance.
-    const auto configured = m_horizon.value("clientPath").toString();
+    const auto configured = m_horizon.value(explicitKey).toString();
     if (!configured.isEmpty()) {
         const QFileInfo info(configured);
         return info.isAbsolute() ? configured : FS::PathCombine(instanceRoot(), configured);
     }
 
     const auto versionsDir = FS::PathCombine(horizonLauncherDir(), "versions");
-    const auto pinned = clientVersion();
+    const auto pinned = m_horizon.value(versionKey).toString();
     if (!pinned.isEmpty()) {
-        const auto candidate = FS::PathCombine(versionsDir, pinned, BINARY_NAME);
+        const auto candidate = FS::PathCombine(versionsDir, pinned, executableName);
         if (QFileInfo(candidate).isFile())
             return candidate;
     }
@@ -255,12 +259,22 @@ QString HorizonInstance::clientBinary() const
     QDir versions(versionsDir);
     const auto entries = versions.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
     for (auto it = entries.crbegin(); it != entries.crend(); ++it) {
-        const auto candidate = FS::PathCombine(versionsDir, *it, BINARY_NAME);
+        const auto candidate = FS::PathCombine(versionsDir, *it, executableName);
         if (QFileInfo(candidate).isFile())
             return candidate;
     }
 
-    return QStandardPaths::findExecutable(BINARY_NAME);
+    return QStandardPaths::findExecutable(executableName);
+}
+
+QString HorizonInstance::clientBinary() const
+{
+    return horizonBinary(QStringLiteral("clientPath"), QStringLiteral("clientVersion"), "horizon-client");
+}
+
+QString HorizonInstance::preparerBinary() const
+{
+    return horizonBinary(QStringLiteral("preparerPath"), QStringLiteral("preparerVersion"), "horizon-prepare");
 }
 
 QString HorizonInstance::instanceConfigFolder() const

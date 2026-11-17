@@ -16,8 +16,8 @@
  * Milestone M1 placeholder: launching a Horizon instance must fail clearly
  * instead of running Minecraft's Java launch steps.
  *
- * M3 replaces this with the real step that spawns `horizon-client` with the
- * account session on stdin.
+ * M4 runs `HorizonPrepareStep` first, so this step now only guards against a
+ * resources folder that is still missing after preparation.
  */
 class HorizonNotPrepared : public LaunchStep {
     Q_OBJECT

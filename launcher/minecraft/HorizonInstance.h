@@ -28,7 +28,8 @@
  *
  * Milestone M1: the instance loads and saves its own `horizon.json` model.
  * Milestone M3: launching runs `horizon-client` with the account session on
- * stdin. Preparation (M4) and settings UI (M2) are still to come.
+ * stdin. Milestone M4: launching prepares or repairs the resources first.
+ * The settings UI (M2) is still to come.
  *
  * `horizon.json` is the source of truth for the Horizon side; `instance.cfg`
  * keeps the Prism-wide settings (name, icon, play time) and `InstanceType=Horizon`.
@@ -81,10 +82,15 @@ class HorizonInstance : public MinecraftInstance {
     /// version pinned by `clientVersion`, else any installed version, else PATH.
     QString clientBinary() const;
 
+    /// `horizon-prepare` used by the M4 preparation step (same lookup rules,
+    /// with `preparerPath` / `preparerVersion`).
+    QString preparerBinary() const;
+
    private:
     void loadHorizonJson();
     void saveHorizonJson();
     QString horizonLauncherDir() const;
+    QString horizonBinary(const QString& explicitKey, const QString& versionKey, const char* binaryName) const;
 
     QJsonObject m_horizon;
 };
