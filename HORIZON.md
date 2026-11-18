@@ -16,7 +16,8 @@ tracks the process.
 | `horizon/m2` | Horizon settings page (channel, pinned versions, fullscreen) |
 | `horizon/m5` | Horizon mods page (`.hmod`/`.hnmod`, `horizon-mods.txt`) |
 | `horizon/m6` | fork branding (`HORIZON_FORK=ON`), updater, CI |
-| `horizon/latest` | M1 + M3 + M4 + M2 + M5 + M6 in order (default branch) |
+| `horizon/m7` | Horizon version management (install, update, remove) |
+| `horizon/latest` | M1 + M3 + M4 + M2 + M5 + M6 + M7 in order (default branch) |
 
 ## Status
 
@@ -33,6 +34,12 @@ Implemented and tested on macOS 26 (x86_64) with the real Horizon nightly
 Native mods (`.hnmod`) are shown but not built into the game: this fork runs
 a prebuilt `horizon-client`, so the page says so instead of pretending they
 run.
+
+The Horizon settings page can also open a version manager: it lists the
+installed and installable Horizon releases through `horizon-launcher`, installs,
+removes and checks for updates, and applies a version to the instance. It never
+removes a version Horizon or another instance plays, and it leaves the
+launcher's own update to Horizon.
 
 GitHub Actions builds the fork with `HORIZON_FORK=ON` on macOS (universal
 bundle), Ubuntu 24.04 and Windows 2022 (MSVC), runs the test suite (25 tests,
