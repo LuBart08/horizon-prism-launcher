@@ -173,6 +173,10 @@ set(CMAKE_MODULE_PATH "${ECM_MODULE_PATH};${CMAKE_MODULE_PATH}")
 
 include(CTest)
 
+##################################### Fork options #####################################
+
+option(HORIZON_FORK "Build the Horizon Prism Launcher fork branding (separate name, app id, data folder and updater)" OFF)
+
 ##################################### Set Application options #####################################
 
 ######## Set URLs ########
@@ -200,6 +204,19 @@ set(Launcher_UPDATER_GITHUB_REPO "https://github.com/PrismLauncher/PrismLauncher
 
 # Name to help updater identify valid artifacts
 set(Launcher_BUILD_ARTIFACT "" CACHE STRING "Artifact name to help the updater identify valid artifacts.")
+
+if(HORIZON_FORK AND NOT APPLE)
+    # The fork's releases live in its own repository, and its assets follow
+    # the same platform naming the updater already understands.
+    set(Launcher_UPDATER_GITHUB_REPO "https://github.com/LuBart08/horizon-prism-launcher")
+    if(Launcher_BUILD_ARTIFACT STREQUAL "")
+        if(WIN32)
+            set(Launcher_BUILD_ARTIFACT "windows-x86_64")
+        else()
+            set(Launcher_BUILD_ARTIFACT "linux-x86_64")
+        endif()
+    endif()
+endif()
 
 # The metadata server
 set(Launcher_META_URL "https://meta.prismlauncher.org/v1/" CACHE STRING "URL to fetch Launcher's meta files from.")
@@ -384,6 +401,9 @@ include(ECMQtDeclareLoggingCategory)
 ####################################### Program Info #######################################
 
 set(Launcher_APP_BINARY_NAME "prismlauncher" CACHE STRING "Name of the Launcher binary")
+if(HORIZON_FORK)
+    set(Launcher_APP_BINARY_NAME "horizon-prism")
+endif()
 add_subdirectory(program_info)
 
 ####################################### Install layout #######################################
@@ -401,12 +421,19 @@ if(NOT (UNIX AND APPLE))
 endif()
 
 if(UNIX AND APPLE)
-    set(BINARY_DEST_DIR "${Launcher_Name}.app/Contents/MacOS")
-    set(LIBRARY_DEST_DIR "${Launcher_Name}.app/Contents/MacOS")
-    set(PLUGIN_DEST_DIR "${Launcher_Name}.app/Contents/MacOS")
-    set(FRAMEWORK_DEST_DIR "${Launcher_Name}.app/Contents/Frameworks")
-    set(RESOURCES_DEST_DIR "${Launcher_Name}.app/Contents/Resources")
-    set(JARS_DEST_DIR "${Launcher_Name}.app/Contents/MacOS/jars")
+    if(HORIZON_FORK)
+        # CMake names the bundle after OUTPUT_NAME, which is the fork binary
+        # name (horizon-prism.app), so the install destinations must follow it.
+        set(Launcher_BUNDLE_DIR "${Launcher_APP_BINARY_NAME}.app")
+    else()
+        set(Launcher_BUNDLE_DIR "${Launcher_Name}.app")
+    endif()
+    set(BINARY_DEST_DIR "${Launcher_BUNDLE_DIR}/Contents/MacOS")
+    set(LIBRARY_DEST_DIR "${Launcher_BUNDLE_DIR}/Contents/MacOS")
+    set(PLUGIN_DEST_DIR "${Launcher_BUNDLE_DIR}/Contents/MacOS")
+    set(FRAMEWORK_DEST_DIR "${Launcher_BUNDLE_DIR}/Contents/Frameworks")
+    set(RESOURCES_DEST_DIR "${Launcher_BUNDLE_DIR}/Contents/Resources")
+    set(JARS_DEST_DIR "${Launcher_BUNDLE_DIR}/Contents/MacOS/jars")
 
     # Mac bundle settings
     set(MACOSX_BUNDLE_BUNDLE_NAME "${Launcher_DisplayName}")
@@ -419,6 +446,14 @@ if(UNIX AND APPLE)
     set(MACOSX_BUNDLE_COPYRIGHT "${Launcher_Copyright_Mac}")
     set(MACOSX_SPARKLE_UPDATE_PUBLIC_KEY "v55ZWWD6QlPoXGV6VLzOTZxZUggWeE51X8cRQyQh6vA=" CACHE STRING "Public key for Sparkle update feed")
     set(MACOSX_SPARKLE_UPDATE_FEED_URL "https://prismlauncher.org/feed/appcast.xml" CACHE STRING "URL for Sparkle update feed")
+
+    if(HORIZON_FORK)
+        # The fork has no Sparkle key yet. Leaving Prism's key and feed would
+        # offer Prism releases and could replace the fork with upstream, so
+        # updates stay off on macOS until the fork publishes its own appcast.
+        set(MACOSX_SPARKLE_UPDATE_PUBLIC_KEY "")
+        set(MACOSX_SPARKLE_UPDATE_FEED_URL "")
+    endif()
 
     set(MACOSX_SPARKLE_DOWNLOAD_URL "https://github.com/sparkle-project/Sparkle/releases/download/2.9.6/Sparkle-2.9.6.tar.xz" CACHE STRING "URL to Sparkle release archive")
     set(MACOSX_SPARKLE_SHA256 "52bf9e88cdd972fc0c81501377a880e90d47031bd8ca5462488f843e2609e192" CACHE STRING "SHA256 checksum for Sparkle release archive")
@@ -451,12 +486,20 @@ if(UNIX AND APPLE)
             set(GENERATED_ASSETS_CAR "${ASSETS_OUT_DIR}/Assets.car")
             set(ICON_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/${Launcher_Branding_MAC_ICON}")
 
+            # The .icon document is Prism's, so the icon set inside it keeps
+            # Prism's name even when the fork renames the app and the .icns.
+            if(HORIZON_FORK)
+                set(ASSETS_ICON_NAME "PrismLauncher")
+            else()
+                set(ASSETS_ICON_NAME "${Launcher_Name}")
+            endif()
+
             add_custom_command(
                 OUTPUT "${GENERATED_ASSETS_CAR}"
                 COMMAND ${ACTOOL_EXE} "${ICON_SOURCE}"
                         --compile "${ASSETS_OUT_DIR}"
                         --output-partial-info-plist /dev/null
-                        --app-icon ${Launcher_Name}
+                        --app-icon ${ASSETS_ICON_NAME}
                         --enable-on-demand-resources NO
                         --target-device mac
                         --minimum-deployment-target ${CMAKE_OSX_DEPLOYMENT_TARGET}
@@ -489,7 +532,7 @@ elseif(UNIX)
 
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${Launcher_Desktop} DESTINATION ${KDE_INSTALL_APPDIR})
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${Launcher_MetaInfo} DESTINATION ${KDE_INSTALL_METAINFODIR})
-    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/${Launcher_SVG} DESTINATION "${KDE_INSTALL_ICONDIR}/hicolor/scalable/apps")
+    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/${Launcher_SVG} DESTINATION "${KDE_INSTALL_ICONDIR}/hicolor/scalable/apps" RENAME "${Launcher_AppID}.svg")
     install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/${Launcher_PNG_256} DESTINATION "${KDE_INSTALL_ICONDIR}/hicolor/256x256/apps" RENAME "${Launcher_AppID}.png")
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${Launcher_MIMEInfo} DESTINATION ${KDE_INSTALL_MIMEDIR})
 
