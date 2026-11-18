@@ -1,0 +1,115 @@
+name: Horizon fork
+
+# Builds the fork with its own branding (HORIZON_FORK=ON) and runs the unit
+# tests on the three desktop platforms. Unlike Prism's own workflow this does
+# not sign or publish anything: signing keys belong to whoever distributes the
+# build (see fork/M6.md).
+
+on:
+  push:
+    branches:
+      - horizon/latest
+      - 'horizon/**'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build (${{ matrix.artifact-name }})
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # macos-15 rather than macos-26: the newer arm64 image often fails to
+          # hand out runners. This image is arm64 and generally available.
+          - os: macos-15
+            artifact-name: macOS
+            qt-version: 6.11.2
+            macosx-deployment-target: 13.0
+            cmake-osx-architectures: x86_64;arm64
+
+          - os: ubuntu-24.04
+            artifact-name: Linux
+            qt-version: 6.11.2
+            cmake-osx-architectures: ''
+
+          - os: windows-2022
+            artifact-name: Windows-MSVC
+            vcvars-arch: amd64
+            qt-version: 6.11.2
+            cmake-osx-architectures: ''
+
+    runs-on: ${{ matrix.os }}
+
+    # Same shell as Prism's workflow: on Windows the default PowerShell does
+    # not expand $CMAKE_PRESET, which silently dropped the preset and left the
+    # vcpkg toolchain unused.
+    defaults:
+      run:
+        shell: bash
+
+    env:
+      ARTIFACT_NAME: ${{ matrix.artifact-name }}-Qt6
+      BUILD_PLATFORM: horizon-prism
+      BUILD_TYPE: Debug
+      CMAKE_PRESET: default
+      CMAKE_OSX_ARCHITECTURES: ${{ matrix.cmake-osx-architectures }}
+      MACOSX_DEPLOYMENT_TARGET: ${{ matrix.macosx-deployment-target }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: true
+
+      - name: Setup dependencies
+        uses: ./.github/actions/setup-dependencies
+        with:
+          build-type: ${{ env.BUILD_TYPE }}
+          artifact-name: ${{ matrix.artifact-name }}
+          vcvars-arch: ${{ matrix.vcvars-arch }}
+          qt-version: ${{ matrix.qt-version }}
+
+      - name: Configure
+        run: >-
+          cmake --preset "$CMAKE_PRESET" -D HORIZON_FORK=ON
+          -D VCPKG_HOST_TRIPLET="$VCPKG_TRIPLET"
+          -D VCPKG_TARGET_TRIPLET="$VCPKG_TRIPLET"
+
+      - name: Build
+        run: cmake --build --preset "$CMAKE_PRESET" --config "$BUILD_TYPE"
+
+      - name: Test
+        run: ctest --preset "$CMAKE_PRESET" --build-config "$BUILD_TYPE" --output-on-failure
+
+      - name: Package (macOS, unsigned)
+        if: ${{ runner.os == 'macOS' }}
+        run: |
+          # Prism deploys Qt (frameworks, plugins, icon, jars) from the install
+          # rules, not from the build tree, so package an installed bundle.
+          cmake --install build --config "$BUILD_TYPE" --prefix install
+          app="install/horizon-prism.app"
+          test -d "$app/Contents/Frameworks/QtCore.framework"
+          test -f "$app/Contents/Resources/HorizonPrismLauncher.icns"
+          plutil -extract CFBundleIdentifier raw "$app/Contents/Info.plist" \
+            | grep -qx 'dev.playhorizon.HorizonPrismLauncher'
+          # Ad-hoc signature: still not notarized, but a valid signature keeps
+          # Apple silicon from reporting the bundle as damaged.
+          codesign --force --deep --sign - "$app"
+          ditto -c -k --sequesterRsrc --keepParent "$app" HorizonPrismLauncher-macOS-unsigned.zip
+
+      - name: Upload macOS artifact
+        if: ${{ runner.os == 'macOS' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: HorizonPrismLauncher-macOS-unsigned
+          path: HorizonPrismLauncher-macOS-unsigned.zip
+          if-no-files-found: error
