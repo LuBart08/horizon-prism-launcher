@@ -15,9 +15,11 @@
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QLabel>
+#include <QPushButton>
 #include <QVBoxLayout>
 
 #include "minecraft/HorizonInstance.h"
+#include "ui/dialogs/HorizonVersionsDialog.h"
 
 HorizonSettingsPage::HorizonSettingsPage(HorizonInstance* instance, QWidget* parent) : QWidget(parent), m_instance(instance)
 {
@@ -45,6 +47,11 @@ HorizonSettingsPage::HorizonSettingsPage(HorizonInstance* instance, QWidget* par
 
     m_fullscreen = new QCheckBox(tr("Start in fullscreen"), general);
     form->addRow(QString(), m_fullscreen);
+
+    m_manageVersions = new QPushButton(tr("Manage Horizon versions…"), general);
+    m_manageVersions->setToolTip(tr("Install, update or remove Horizon versions, and use one for this instance."));
+    form->addRow(QString(), m_manageVersions);
+    connect(m_manageVersions, &QPushButton::clicked, this, &HorizonSettingsPage::openVersionsDialog);
 
     m_resources = new QLabel(general);
     m_resources->setWordWrap(true);
@@ -103,4 +110,21 @@ bool HorizonSettingsPage::apply()
     m_instance->setPreparerVersion(m_preparerVersion->currentText().trimmed());
     m_instance->setFullscreen(m_fullscreen->isChecked());
     return true;
+}
+
+void HorizonSettingsPage::openVersionsDialog()
+{
+    HorizonVersionsDialog dialog(m_instance, this);
+    if (dialog.exec() != QDialog::Accepted)
+        return;
+
+    const auto chosen = dialog.chosenVersion();
+    if (chosen.isEmpty())
+        return;
+
+    // The page is what apply() saves, so fill the combos instead of writing
+    // horizon.json behind its back.
+    loadSettings();
+    m_clientVersion->setCurrentText(chosen);
+    m_preparerVersion->setCurrentText(chosen);
 }

@@ -91,6 +91,11 @@ class HorizonInstance : public MinecraftInstance {
     /// with `preparerPath` / `preparerVersion`).
     QString preparerBinary() const;
 
+    /// `horizon-launcher`, the official CLI that installs, updates and removes
+    /// versions (M7). It is not shipped inside version folders: it comes from
+    /// `launcherPath` in horizon.json, Horizon.app on macOS, or PATH.
+    QString launcherCli() const;
+
    private:
     void loadHorizonJson();
     void saveHorizonJson();
