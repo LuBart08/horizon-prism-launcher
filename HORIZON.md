@@ -15,7 +15,8 @@ tracks the process.
 | `horizon/m4` | automatic preparation with `horizon-prepare --check`/`--prepare` |
 | `horizon/m2` | Horizon settings page (channel, pinned versions, fullscreen) |
 | `horizon/m5` | Horizon mods page (`.hmod`/`.hnmod`, `horizon-mods.txt`) |
-| `horizon/latest` | M1 + M3 + M4 + M2 + M5 in order (default branch) |
+| `horizon/m6` | fork branding (`HORIZON_FORK=ON`), updater, CI |
+| `horizon/latest` | M1 + M3 + M4 + M2 + M5 + M6 in order (default branch) |
 
 ## Status
 
@@ -33,7 +34,22 @@ Native mods (`.hnmod`) are shown but not built into the game: this fork runs
 a prebuilt `horizon-client`, so the page says so instead of pretending they
 run.
 
-Not yet packaged, not yet upstreamed, and not yet tested on Windows or Linux.
+GitHub Actions builds the fork with `HORIZON_FORK=ON` on macOS (universal
+bundle), Ubuntu 24.04 and Windows 2022 (MSVC), runs the test suite (25 tests,
+including `HorizonMod_test` and `HorizonRelease_test`) and uploads an unsigned
+macOS Debug bundle as a workflow artifact. See `.github/workflows/horizon.yml`.
+
+## Building with the fork identity
+
+`-DHORIZON_FORK=ON` (or `fork/build-m6.sh` in the development repository)
+builds `horizon-prism.app`, the `horizon-prism` binary, the
+`dev.playhorizon.HorizonPrismLauncher` bundle id and a separate data folder,
+so the fork and Prism can be installed side by side. The GitHub updater points
+at this repository on Windows and Linux; Sparkle stays off on macOS because the
+fork has no signing key yet. Artifacts are unsigned.
+
+Not yet signed and not yet released. Windows and Linux are compiled and tested
+in CI but have not been run by hand.
 
 ## License
 
