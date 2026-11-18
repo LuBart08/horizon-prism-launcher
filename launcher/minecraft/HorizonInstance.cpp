@@ -295,6 +295,37 @@ QString HorizonInstance::preparerBinary() const
     return horizonBinary(QStringLiteral("preparerPath"), QStringLiteral("preparerVersion"), "horizon-prepare");
 }
 
+QString HorizonInstance::launcherCli() const
+{
+#ifdef Q_OS_WIN
+    const auto executableName = QStringLiteral("horizon-launcher.exe");
+#else
+    const auto executableName = QStringLiteral("horizon-launcher");
+#endif
+
+    // Explicit override in horizon.json, absolute or relative to the instance.
+    const auto configured = m_horizon.value("launcherPath").toString();
+    if (!configured.isEmpty()) {
+        const QFileInfo info(configured);
+        const auto candidate = info.isAbsolute() ? configured : FS::PathCombine(instanceRoot(), configured);
+        if (QFileInfo(candidate).isFile())
+            return candidate;
+    }
+
+#if defined(Q_OS_MACOS)
+    // The app bundle the player installed; the CLI lives beside the window app.
+    const QStringList bundles{ FS::PathCombine(QDir::homePath(), "Applications", "Horizon.app"),
+                               QStringLiteral("/Applications/Horizon.app") };
+    for (const auto& bundle : bundles) {
+        const auto candidate = FS::PathCombine(bundle, "Contents", "MacOS", executableName);
+        if (QFileInfo(candidate).isFile())
+            return candidate;
+    }
+#endif
+
+    return QStandardPaths::findExecutable(executableName);
+}
+
 QString HorizonInstance::instanceConfigFolder() const
 {
     return FS::PathCombine(instanceRoot(), "horizon", "config");

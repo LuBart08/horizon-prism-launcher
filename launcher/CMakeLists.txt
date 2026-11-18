@@ -279,6 +279,8 @@ set(MINECRAFT_SOURCES
     minecraft/MinecraftInstance.h
     minecraft/HorizonInstance.cpp
     minecraft/HorizonInstance.h
+    minecraft/HorizonRelease.cpp
+    minecraft/HorizonRelease.h
     minecraft/LaunchProfile.cpp
     minecraft/LaunchProfile.h
     minecraft/Component.cpp
@@ -1043,6 +1045,8 @@ SET(LAUNCHER_SOURCES
     # GUI - dialogs
     ui/dialogs/AboutDialog.cpp
     ui/dialogs/AboutDialog.h
+    ui/dialogs/HorizonVersionsDialog.cpp
+    ui/dialogs/HorizonVersionsDialog.h
     ui/dialogs/ProfileSelectDialog.cpp
     ui/dialogs/ProfileSelectDialog.h
     ui/dialogs/ProfileSetupDialog.cpp

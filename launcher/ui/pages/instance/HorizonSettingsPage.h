@@ -18,6 +18,7 @@ class HorizonInstance;
 class QCheckBox;
 class QComboBox;
 class QLabel;
+class QPushButton;
 
 /*!
  * Milestone M2: Horizon-specific instance settings.
@@ -42,10 +43,13 @@ class HorizonSettingsPage : public QWidget, public BasePage {
     void loadSettings();
 
    private:
+    void openVersionsDialog();
+
     HorizonInstance* m_instance;
     QComboBox* m_channel = nullptr;
     QComboBox* m_clientVersion = nullptr;
     QComboBox* m_preparerVersion = nullptr;
+    QPushButton* m_manageVersions = nullptr;
     QCheckBox* m_fullscreen = nullptr;
     QLabel* m_resources = nullptr;
     QLabel* m_minecraft = nullptr;
